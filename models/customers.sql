@@ -6,15 +6,21 @@
 
 with customers as (
 
-    select
-        id as customer_id,
-        first_name,
-        last_name
-
-    from raw.jaffle_shop.customers
+    select * from {{ ref('stg_customers') }}
 
 ),
 
+customer_ltv as ( 
+
+    select 
+        customer_id,
+        sum(amount_usd) as ltv
+    
+    from {{ ref('orders') }}
+
+    group by 1
+
+),
 orders as (
 
     select
@@ -51,11 +57,14 @@ final as (
         customers.last_name,
         customer_orders.first_order_date,
         customer_orders.most_recent_order_date,
-        coalesce(customer_orders.number_of_orders, 0) as number_of_orders
+        coalesce(customer_orders.number_of_orders, 0) as number_of_orders,
+        coalesce(customer_ltv.ltv, 0) as ltv
+
 
     from customers
 
     left join customer_orders using (customer_id)
+    left join customer_ltv using (customer_id)
 
 )
 
